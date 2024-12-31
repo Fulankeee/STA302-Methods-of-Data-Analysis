@@ -1,0 +1,128 @@
+---
+title: "STA302 Final Project 1"
+output: pdf_document
+author: "Mengyang Liu 1006702739"
+date: "2022/10/20"
+---
+
+```{r}
+library(tidyverse)
+effect <- read.csv("effect.csv")
+VOC <- read.csv("VOC.csv")
+CO2 <- read.csv("CO2.csv")
+CO <- read.csv("CO.csv")
+GHG <- read.csv("GHG.csv")
+SOx <- read.csv("SOx.csv")
+NOx <- read.csv("NOx.csv")
+```
+
+
+```{r}
+CO <- CO %>% 
+  mutate(Value = Value/1000)
+
+NOx <- NOx %>% 
+  mutate(Value = Value/1000)
+
+SOx <- SOx %>% 
+  mutate(Value = Value/1000)
+
+GHG <- GHG %>% 
+  mutate(Value = Value/1000)
+
+VOC <- VOC %>% 
+  mutate(Value = Value/1000)
+```
+
+
+```{r}
+effect <- effect %>% 
+  filter(LOCATION == "AUS"|LOCATION == "CAN"|LOCATION == "DEU"|LOCATION == "ITA"|LOCATION == "FRA"|LOCATION == "JPN"|LOCATION == "KOR"|LOCATION == "GBR" |LOCATION == "USA"|LOCATION == "TUR")
+
+CO2 <- CO2 %>% 
+  filter(LOCATION == "AUS"|LOCATION == "CAN"|LOCATION == "DEU"|LOCATION == "ITA"|LOCATION == "FRA"|LOCATION == "JPN"|LOCATION == "KOR"|LOCATION == "GBR" |LOCATION == "USA"|LOCATION == "TUR")
+
+CO <- CO %>% 
+  filter(LOCATION == "AUS"|LOCATION == "CAN"|LOCATION == "DEU"|LOCATION == "ITA"|LOCATION == "FRA"|LOCATION == "JPN"|LOCATION == "KOR"|LOCATION == "GBR" |LOCATION == "USA"|LOCATION == "TUR")
+
+NOx <- NOx %>% 
+  filter(LOCATION == "AUS"|LOCATION == "CAN"|LOCATION == "DEU"|LOCATION == "ITA"|LOCATION == "FRA"|LOCATION == "JPN"|LOCATION == "KOR"|LOCATION == "GBR" |LOCATION == "USA"|LOCATION == "TUR")
+
+SOx <- SOx %>% 
+  filter(LOCATION == "AUS"|LOCATION == "CAN"|LOCATION == "DEU"|LOCATION == "ITA"|LOCATION == "FRA"|LOCATION == "JPN"|LOCATION == "KOR"|LOCATION == "GBR" |LOCATION == "USA"|LOCATION == "TUR")
+
+GHG <- GHG %>% 
+  filter(LOCATION == "AUS"|LOCATION == "CAN"|LOCATION == "DEU"|LOCATION == "ITA"|LOCATION == "FRA"|LOCATION == "JPN"|LOCATION == "KOR"|LOCATION == "GBR" |LOCATION == "USA"|LOCATION == "TUR")
+
+VOC <- VOC %>% 
+  filter(LOCATION == "AUS"|LOCATION == "CAN"|LOCATION == "DEU"|LOCATION == "ITA"|LOCATION == "FRA"|LOCATION == "JPN"|LOCATION == "KOR"|LOCATION == "GBR" |LOCATION == "USA"|LOCATION == "TUR")
+```
+
+
+```{r}
+Time <- effect$TIME
+Location <- effect$LOCATION
+Effect_value <- effect$Value
+CO_2 <- CO2$Value
+CO_ <- CO$Value
+SO_x <- SOx$Value
+NO_x <- NOx$Value
+ghg <- GHG$Value
+voc <- VOC$Value
+```
+
+
+```{r}
+data <- tibble(Location, Time, Effect_value, CO_2, CO_, SO_x, NO_x, ghg, voc)
+```
+
+
+```{r}
+model <-lm(Effect_value ~ CO_2+ CO_ + SO_x+ NO_x + ghg +voc, data)
+summary(model)
+```
+
+1. First, we will quickly look at some graphical summaries of the various possible predictors with the response to get a sense of any interesting relationships present:
+Check linearity between each predictor and our interest.
+
+```{r, fig.height=5, fig.width=5}
+plot(data$CO_2 ~ data$Effect_value, col="1", pch=1, main="CO2 vs Effect", xlab="Effect Value", ylab="CO2")
+plot(data$CO_ ~ data$Effect_value, col="2", pch=1,  main="CO vs Effect", xlab="Effect Value", ylab="CO")
+plot(data$NO_x ~ data$Effect_value, col="3", pch=1, main="NOx vs Effect", xlab="Effect Value", ylab="NOx")
+plot(data$SO_x ~ data$Effect_value, col="4", pch=1, main="SOx vs Effect", xlab="Effect Value", ylab="SOx")
+plot(data$ghg ~ data$Effect_value, col="5", pch=1, main="GHG vs Effect", xlab="Effect Value", ylab="GHG")
+plot(data$voc ~ data$Effect_value, col="6", pch=1, main="VOC vs Effect", xlab="Effect Value", ylab="VOC")
+```
+*Seems each variable appears to be linearly related with the response except NO_x and SO_x. There are outliers happen when using each variables to predict the air pollution effect values between 100-200 and the non-linearity of NO_x and SO_x also happen in this interval. Therefore, it might have some problems within my linear regression model in this prediction interval.
+
+
+
+2. Preliminary check for constant variance - look at scatterplots (to see if we notice increase variability in the response across values of each predictor - if we do see this, does not mean the assumption is violated but we'd want to check it out in detail formally)
+
+*By checking the graph, there is no increase variability in the response across values of each predictor.
+  
+```{r}
+pairs(data[, c(3:9)])
+```
+
+
+
+3. Normality; Check distributions/histograms (to check for symmetry in the variables - not required but if severe skews exist, may become a problem for linearity in the model)
+
+```{r, fig.height=5, fig.width=5}
+hist(data$CO_2, xlab = "CO2 emission", main = "Histogram of CO2 emission in million tonnes")
+hist(data$CO_, xlab = "CO emission", main = "Histogram of CO emission in million tonnes")
+hist(data$SO_x, xlab = "SOx emission", main = "Histogram of SOx emission in million tonnes")
+hist(data$NO_x, xlab = "NOx emission", main = "Histogram of NOx emission in million tonnes")
+hist(data$ghg, xlab = "GHG emission", main = "Histogram of GHG emission in million tonnes")
+hist(data$voc, xlab = "VOC emission", main = "Histogram of VOC emission in million tonnes")
+```
+*The distribution shape of all predictor variables are generally right-skewed. It mean that they are not normal distribution. However, marginal distribution can be non-normal.
+
+
+4. Uncorrelated errors - not much of a visual aid to use here, but can think in depth whether it makes sense to assume that each observation is independent from every other observation (ask if things are measured over time, on the same person, grouped by country, etc.
+
+*Each observation is independent from others. Difference by measured time or measured time and measured countries. Because each variables are different gases emission value, they are not related. Therefore, it fitted the assumption of independence of linear regression.
+
+*By cleaning my data, there is no missing data and non-sense observations in the dataset I'm using for generating my linear model.
+

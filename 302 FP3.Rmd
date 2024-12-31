@@ -1,0 +1,658 @@
+---
+title: "Prediction of the Effect of Air Pollution Using the Emission Amount of Polluted Gases"
+subtitle: "STA302 Final Project"
+output: pdf_document
+author: "Mengyang Liu 1006702739"
+date: "2022/12/18"
+---
+
+## Instruction
+Air pollution, as one of the three major types of pollution, is being seriously noticed by people all over the world. Many countries have already taken action on reducing air pollution such as formulating related laws and controlling polluted gases emission. This research paper is aimed to find a linear relationship between polluted air and the pollution effect which could provide a direct view of how air pollution affects human beings' life. It is different from other research papers since it will focus on several different gases simultaneously rather than being specific to only one pollutant. Linear regression models will be generated to predict the effect of air pollution using the emission amount of polluted gases with the data retrieved from research named “Environment at a Glance” published in 2020 on the OECD website. 
+
+## Method
+### Data cleaning
+There are 8 variables I needed, but they are in different datasets. By randomly choosing 10 countries for each dataset that contain no missing data from the years 2008 to 2019 and changing the units to the same, I can combine them together as my dataset. After that, there are 120 observations with 9 variables in total containing year, location, effect value, carbon dioxide (CO2), carbon monoxide (CO), greenhouse gas (GHG), nitrogen oxide (NOx), sulfur oxide (SOx) and volatile organic compound (VOC).
+
+### Model Generating
+By using the clean data that is made in the method mentioned above, I randomly select 50% of the observations to be training data and 50% to be testing data. The training data will be used to fit the model while the testing data will be used to check the model later. A full model is generated then using the training data with effect value as interest and CO2, CO, SOx, NOx, VOC, and GHG as predictors. The next step is to make sure the assumptions of linear regression are all obeyed so the model is constructed reasonably. But after that, I first check the two conditions of linear regression to determine whether using residual plots for assumption check is valid. By fitting plots using the combination of predictors to present the effect value, condition 1 can be checked if the graph is linear and diagonal. To check condition 2, plots of predictors as representations of each other are generated to see if they are a linear combination of each other. The transformation will be applied if they are not fulfilled and it is done by first using the Box-Cox method to try power transformation. However, sometimes there are powers of 0 which is not reasonable, then logarithm transformation can be used instead. 
+
+After then, we can use residual plots to check all the assumptions. There are four assumptions to check. The assumption of normality can be checked by seeing whether the ggplot is linear or diagonal. Observing whether the residual plots are of linearity and uncorrelation with constant variance can check the rest 3 assumptions. If some of them are violated, transformation to the response variable, the predictors or both could be methods to fix it or make it better. After making sure all the assumptions are fulfilled, making the model of less multilinearity is the next goal. It is done by checking if the variance inflation factors are less than 5. If not, the predictors with the highest VIF will be removed until all the predictors left have VIFs of less than 5.
+
+After doing all these pre-works, it’s time to apply ANOVA to check the overall linearity of my fitted model and to see if some of the predictors can be removed. F-test will be performed to find the predictors with high p-values which are considered non-significant. After collecting such predictors, the reduced model can be constructed. However, it is important to determine if removing predictors can make the model better. Therefore, the F-partial test is performed. There may also be outliers or leverage points existing, so cook’s distance, DFFITS, and DFBATES will be checked to determine whether it’s needed to remove some observations. If so, the assumptions need to be checked again as the data used has changed. One or more models can be selected as good predictions, and it’s time to check their goodness by comparing their AIC, BIC, and adjusted R-squared.
+
+The testing data is then used to do the process that the training data has done again and refit one or more fine models then and a comparison will be made between the models fixed using two different data. The final model is then determined to do the prediction of air pollution effect value using the left polluted gases emission amount.
+
+## Result
+I start with a full model called model1 which contains all the six polluted gases as predictors to predict the effect value. After first checking the two conditions and making sure they are fulfilled, I create the residual plots of the full model. By observation, the constant variance and normality are violated. So, transformations should be attempted to mitigate these problems
+```{r include=FALSE}
+library(tidyverse)
+effect <- read.csv("effect.csv")
+VOC <- read.csv("VOC.csv")
+CO2 <- read.csv("CO2.csv")
+CO <- read.csv("CO.csv")
+GHG <- read.csv("GHG.csv")
+SOx <- read.csv("SOx.csv")
+NOx <- read.csv("NOx.csv")
+
+CO <- CO %>% 
+  mutate(Value = Value/1000)
+
+NOx <- NOx %>% 
+  mutate(Value = Value/1000)
+
+SOx <- SOx %>% 
+  mutate(Value = Value/1000)
+
+GHG <- GHG %>% 
+  mutate(Value = Value/1000)
+
+VOC <- VOC %>% 
+  mutate(Value = Value/1000)
+
+effect <- effect %>% 
+  filter(LOCATION == "AUS"|LOCATION == "CAN"|LOCATION == "DEU"|LOCATION == "ITA"|LOCATION == "FRA"|LOCATION == "JPN"|LOCATION == "KOR"|LOCATION == "GBR" |LOCATION == "USA"|LOCATION == "TUR")
+
+CO2 <- CO2 %>% 
+  filter(LOCATION == "AUS"|LOCATION == "CAN"|LOCATION == "DEU"|LOCATION == "ITA"|LOCATION == "FRA"|LOCATION == "JPN"|LOCATION == "KOR"|LOCATION == "GBR" |LOCATION == "USA"|LOCATION == "TUR")
+
+CO <- CO %>% 
+  filter(LOCATION == "AUS"|LOCATION == "CAN"|LOCATION == "DEU"|LOCATION == "ITA"|LOCATION == "FRA"|LOCATION == "JPN"|LOCATION == "KOR"|LOCATION == "GBR" |LOCATION == "USA"|LOCATION == "TUR")
+
+NOx <- NOx %>% 
+  filter(LOCATION == "AUS"|LOCATION == "CAN"|LOCATION == "DEU"|LOCATION == "ITA"|LOCATION == "FRA"|LOCATION == "JPN"|LOCATION == "KOR"|LOCATION == "GBR" |LOCATION == "USA"|LOCATION == "TUR")
+
+SOx <- SOx %>% 
+  filter(LOCATION == "AUS"|LOCATION == "CAN"|LOCATION == "DEU"|LOCATION == "ITA"|LOCATION == "FRA"|LOCATION == "JPN"|LOCATION == "KOR"|LOCATION == "GBR" |LOCATION == "USA"|LOCATION == "TUR")
+
+GHG <- GHG %>% 
+  filter(LOCATION == "AUS"|LOCATION == "CAN"|LOCATION == "DEU"|LOCATION == "ITA"|LOCATION == "FRA"|LOCATION == "JPN"|LOCATION == "KOR"|LOCATION == "GBR" |LOCATION == "USA"|LOCATION == "TUR")
+
+VOC <- VOC %>% 
+  filter(LOCATION == "AUS"|LOCATION == "CAN"|LOCATION == "DEU"|LOCATION == "ITA"|LOCATION == "FRA"|LOCATION == "JPN"|LOCATION == "KOR"|LOCATION == "GBR" |LOCATION == "USA"|LOCATION == "TUR")
+
+Time <- effect$TIME
+Location <- effect$LOCATION
+Effect_value <- effect$Value
+CO_2 <- CO2$Value
+CO_ <- CO$Value
+SO_x <- SOx$Value
+NO_x <- NOx$Value
+ghg <- GHG$Value
+voc <- VOC$Value
+
+data <- tibble(Location, Time, Effect_value, CO_2, CO_, SO_x, NO_x, ghg, voc)
+```
+```{r include=FALSE}
+set.seed(823)
+sample <- sample(c(TRUE, FALSE), nrow(data), replace=TRUE, prob=c(0.5,0.5))
+train  <- data[sample, ]
+test   <- data[!sample, ]
+```
+```{r include=FALSE}
+model1 <-lm(Effect_value ~ CO_2+ CO_ + SO_x+ NO_x + ghg +voc, train)
+summary(model1)
+```
+```{r include=FALSE}
+#condition 1
+fit <- model1$fitted.values
+plot(train$Effect_value ~ fit)
+abline(a = 0, b = 1)
+lines(lowess(train$Effect_value ~ fit), lty=2)
+
+#condition 2
+pairs(train[,3:9])
+
+# Assumption check
+par(mfrow=c(3,3))
+r <- model1$residuals
+plot(r ~ fit, xlab="Fitted", ylab="Residuals")
+plot(r ~ train$CO_2, xlab="CO2", ylab="Residuals")
+plot(r ~ train$CO_, xlab="CO", ylab="Residuals")
+plot(r ~ train$SO_x, xlab="SOX", ylab="Residuals")
+plot(r ~ train$NO_x, xlab="NOX", ylab="Residuals")
+plot(r ~ train$ghg, xlab="GHG", ylab="Residuals")
+plot(r ~ train$voc, xlab="VOC", ylab="Residuals")
+qqnorm(r)
+qqline(r)
+
+#In these plots, we observe 2 main problems: fanning of the residuals which tells us constant variance is violated, and pretty severe deviations from Normality. So transformations should be attempted to mitigate these problems. Since we seem to observe a pattern in all variables, let's see what Box-Cox has to suggest for transformations on all variables including the response.
+```
+```{r include=FALSE}
+install.packages("car")
+library(car)
+
+# this transforms all X and Y simultaneously
+transform <- powerTransform(cbind(train[,2:9]))
+summary(transform)
+
+# if we only wanted to consider transformations on X
+summary(powerTransform(cbind(train[,4:9])))
+
+# if we wanted only to transform y, we would use boxCox function instead
+boxCox(model1)
+
+#By checking the model the Box-Cox transformation method, we see that there are 0s for the power the sumamry provided. Therefore, I choose to transform all variables (Y and Xs) by a natural logarithm.
+```
+```{r include=FALSE}
+# create transformed variables
+train$logEffect_value <- log(train$Effect_value)
+train$logCO_2 <- log(train$CO_2)
+train$logCO_ <- log(train$CO_)
+train$logSO_x <- log(train$SO_x)
+train$logNO_x <- log(train$NO_x)
+train$logghg <- log(train$ghg)
+train$logvoc <- log(train$voc)
+
+# re-fit the model with new variables
+model2 <-lm(logEffect_value ~ logCO_2+ logCO_ + logSO_x+ logNO_x + logghg + logvoc, train)
+summary(model2)
+
+# re-check all the conditions and assumptions
+# check condition 1
+fit <- model2$fitted.values
+plot(train$Effect_value ~ fit)
+abline(a = 0, b = 1)
+lines(lowess(train$Effect_value ~ fit), lty=2)
+
+
+
+# check condition 2
+pairs(train[,3:9])
+
+par(mfrow=c(3,3))
+r <- model2$residuals
+plot(r ~ fit, xlab="Fitted", ylab="Residuals")
+plot(r ~ train$CO_2, xlab="logCO2", ylab="Residuals")
+plot(r ~ train$CO_, xlab="logCO", ylab="Residuals")
+plot(r ~ train$SO_x, xlab="logSOX", ylab="Residuals")
+plot(r ~ train$NO_x, xlab="logNOX", ylab="Residuals")
+plot(r ~ train$ghg, xlab="logGHG", ylab="Residuals")
+plot(r ~ train$voc, xlab="logVOC", ylab="Residuals")
+qqnorm(r)
+qqline(r)
+#The assumptions should have been vastly improved. But the ggplot shows is not that diagnal. We could consider whether a transformation on Y is even needed:
+```
+```{r include=FALSE}
+# create transformed variables
+train$logCO_2 <- log(train$CO_2)
+train$logCO_ <- log(train$CO_)
+train$logSO_x <- log(train$SO_x)
+train$logNO_x <- log(train$NO_x)
+train$logghg <- log(train$ghg)
+train$logvoc <- log(train$voc)
+
+# re-fit the model with new variables
+model3 <-lm(Effect_value ~ logCO_2+ logCO_ + logSO_x+ logNO_x + logghg + logvoc, train)
+summary(model3)
+
+# re-check all the conditions and assumptions
+# check condition 1
+fit <- model3$fitted.values
+plot(train$Effect_value ~ fit)
+abline(a = 0, b = 1)
+lines(lowess(train$Effect_value ~ fit), lty=2)
+
+
+# check condition 2
+pairs(train[,3:9])
+```
+
+```{r include=FALSE}
+par(mfrow=c(3,3))
+r <- model3$residuals
+plot(r ~ fit, xlab="Fitted", ylab="Residuals")
+plot(r ~ train$CO_2, xlab="logCO2", ylab="Residuals")
+plot(r ~ train$CO_, xlab="logCO", ylab="Residuals")
+plot(r ~ train$SO_x, xlab="logSOX", ylab="Residuals")
+plot(r ~ train$NO_x, xlab="logNOX", ylab="Residuals")
+plot(r ~ train$ghg, xlab="logGHG", ylab="Residuals")
+plot(r ~ train$voc, xlab="logVOC", ylab="Residuals")
+qqnorm(r)
+qqline(r)
+```
+
+```{r include=FALSE}
+#Then, let's make sure there is no multilinearity happens to my model
+vif(model3)
+#Remove logghg since it has high VIF
+
+model4 <-lm(Effect_value ~ logCO_2+ logCO_ + logSO_x+ logNO_x + logvoc, train)
+vif(model4)
+
+#Remove logvoc since it has high VIF
+model5 <-lm(Effect_value ~ logCO_2+ logCO_ + logSO_x+ logNO_x, train)
+vif(model5)
+```
+
+
+```{r include=FALSE}
+#Now it time to apply ANOVA to check the overall linearity of my fitted model
+anova(model5)
+summary(model5)
+
+#It shows that there is no non-signifcant predictors and has R^2 68.06%, but we need to have a try to see if remove one of the predictor with the largest p-value with make the model better.
+```
+
+```{r include=FALSE}
+#It shows that logSOx has highest p-value. We remove the variable and apply partial F-test
+
+model5_reduced1 <- lm(Effect_value ~ logCO_2 + logCO_+ logNO_x, train)
+anova(model5_reduced1)
+summary(model5_reduced1)
+```
+
+
+```{r include=FALSE}
+#The result is ok with R^2 of 62.54% but some of the predictor seems become of non-significance.Let's try to remove the predictor with second largest p-value which is logCO_
+
+model5_reduced2 <- lm(Effect_value ~ logCO_2 + logSO_x+ logNO_x, train)
+anova(model5_reduced2)
+summary(model5_reduced2)
+
+#This time is good with R^2 of 67.95% and all the left predictors are significant.
+#Finally, I find the best case happen if I keep model5_reduced2
+```
+
+
+```{r include=FALSE}
+# values to use in cutoffs
+n <- nrow(train)
+p <- length(coef(model5_reduced2))-1
+
+# define the cutoffs we will use
+Hcut <- 2*((p+1)/n)
+DFFITScut <- 2*sqrt((p+1)/n)
+DFBETAcut <- 2/sqrt(n)
+Dcut <- qf(0.5, p+1, n-p-1)
+
+# identify the leverage points
+h <- hatvalues(model5_reduced2)
+which(h>Hcut)
+
+# identify the outliers
+r <- rstandard(model5_reduced2)
+which(r < -2 | r > 2)
+which(r < -4 | r > 4)
+
+# identify influential points by Cook's distance
+D <- cooks.distance(model5_reduced2)
+which(D > Dcut)
+
+# identify influential points by DFFITS
+fits <- dffits(model5_reduced2)
+which(abs(fits) > DFFITScut)
+
+# identify influential points by DFBETAS
+betas <- dfbetas(model5_reduced2)
+dim(betas)
+
+for(i in 1:4){
+  print(paste0("Beta ", i-1))
+  print(which(abs(betas[,i]) > DFBETAcut))
+}
+
+#We identified 10 leverage points in the data that are distant from the rest of the observations in the predictor space. 
+
+#We also identified 1 outliers observations when considering the dataset as "small", and 0 when considering it as "large". 
+
+#No observations were identified as being influential on the entire regression surface. (Cook's distance) 
+
+#But we identified 1 observations influenced their own fitted values. (DFFITS) 
+
+#And 5 observations are influential on at least one estimated coefficient. (DFBETA)
+
+#However, there s no abnormal measurement or errors, I will not delete these observations since it is not ethical. In this case, limitation of my model might be caused due to these leverage, outilers and influential observations.
+```
+
+
+```{r include=FALSE}
+#Then it's time to check the goodness of my final model
+
+select = function(model, n)
+{
+  SSres <- sum(model$residuals^2)
+  Rsq <- summary(model)$r.squared
+  Rsq_adj <- summary(model)$adj.r.squared
+  p <- length(model$coefficients) - 1
+  AIC <- n*log(SSres/n) + 2*p     # you could also use AIC()
+  AICc <- AIC + (2*(p+2)*(p+3)/(n-p-1))
+  BIC <- n*log(SSres/n) + (p+2)*log(n)    # could also use BIC()
+  res <- c(SSres, Rsq, Rsq_adj, AIC, AICc, BIC)
+  names(res) <- c("SSres", "Rsq", "Rsq_adj", "AIC", "AIC_c", "BIC")
+  return(res)
+} 
+
+
+s1 <- select(model5, nrow(train))
+s1
+s2 <- select(model5_reduced1, nrow(train))
+s2
+s3 <- select(model5_reduced2, nrow(train))
+s3
+```
+
+```{r include=FALSE}
+
+#Use test data to check (model validation)
+
+tmodel1 <-lm(Effect_value ~ CO_2+ CO_ + SO_x+ NO_x + ghg +voc, test)
+
+test$logCO_2 <- log(test$CO_2)
+test$logCO_ <- log(test$CO_)
+test$logSO_x <- log(test$SO_x)
+test$logNO_x <- log(test$NO_x)
+test$logghg <- log(test$ghg)
+test$logvoc <- log(test$voc)
+
+tmodel3 <-lm(Effect_value ~ logCO_2+ logCO_ + logSO_x+ logNO_x + logghg + logvoc, test)
+# check condition 1
+fit <- tmodel3$fitted.values
+plot(test$Effect_value ~ fit)
+abline(a = 0, b = 1)
+lines(lowess(test$Effect_value ~ fit), lty=2)
+
+
+# check condition 2
+pairs(test[,3:9])
+
+par(mfrow=c(3,3))
+r <- tmodel3$residuals
+plot(r ~ fit, xlab="Fitted", ylab="Residuals")
+plot(r ~ test$CO_2, xlab="logCO2", ylab="Residuals")
+plot(r ~ test$CO_, xlab="logCO", ylab="Residuals")
+plot(r ~ test$SO_x, xlab="logSOX", ylab="Residuals")
+plot(r ~ test$NO_x, xlab="logNOX", ylab="Residuals")
+plot(r ~ test$ghg, xlab="logGHG", ylab="Residuals")
+plot(r ~ test$voc, xlab="logVOC", ylab="Residuals")
+qqnorm(r)
+qqline(r)
+```
+
+```{r include=FALSE}
+tmodel5 <-lm(Effect_value ~ logCO_2+ logCO_ + logSO_x+ logNO_x, test)
+tmodel5_reduced1 <- lm(Effect_value ~ logCO_2 + logCO_+ logNO_x, test)
+tmodel5_reduced2 <- lm(Effect_value ~ logCO_2 + logSO_x+ logNO_x, test)
+
+n <- nrow(test)
+p <- length(coef(tmodel5_reduced2))-1
+
+# define the cutoffs we will use
+Hcut <- 2*((p+1)/n)
+DFFITScut <- 2*sqrt((p+1)/n)
+DFBETAcut <- 2/sqrt(n)
+Dcut <- qf(0.5, p+1, n-p-1)
+
+# identify the leverage points
+h <- hatvalues(tmodel5_reduced2)
+which(h>Hcut)
+
+# identify the outliers
+r <- rstandard(tmodel5_reduced2)
+which(r < -2 | r > 2)
+which(r < -4 | r > 4)
+
+# identify influential points by Cook's distance
+D <- cooks.distance(tmodel5_reduced2)
+which(D > Dcut)
+
+# identify influential points by DFFITS
+fits <- dffits(tmodel5_reduced2)
+which(abs(fits) > DFFITScut)
+
+# identify influential points by DFBETAS
+betas <- dfbetas(tmodel5_reduced2)
+dim(betas)
+
+for(i in 1:4){
+  print(paste0("Beta ", i-1))
+  print(which(abs(betas[,i]) > DFBETAcut))
+}
+```
+```{r echo=FALSE}
+par(mfrow=c(2,3))
+r <- tmodel5_reduced2$residuals
+plot(r ~ fit, xlab="Fitted", ylab="Residuals")
+plot(r ~ test$CO_2, xlab="logCO2", ylab="Residuals")
+plot(r ~ test$SO_x, xlab="logSOX", ylab="Residuals")
+plot(r ~ test$NO_x, xlab="logNOX", ylab="Residuals")
+qqnorm(r)
+qqline(r)
+```
+Figure.1
+
+```{r include=FALSE}
+summary(tmodel5)
+summary(tmodel5_reduced1)
+summary(tmodel5_reduced2)
+vif(tmodel5_reduced2)
+```
+
+```{r include=FALSE}
+temp1 <- lm(Effect_value ~ logCO_2 + logSO_x+ logNO_x, train)
+temp2 <- lm(Effect_value ~ logCO_2 + logSO_x+ logNO_x + logCO_ , train)
+temp1test <- lm(Effect_value ~ logCO_2 + logSO_x+ logNO_x, test)
+temp2test <- lm(Effect_value ~ logCO_2 + logSO_x+ logNO_x + logCO_ , test)
+ 
+p1 <- length(coef(temp1))-1
+n1 <- nrow(train)
+vif1 <- max(vif(temp1))
+D1 <- length(which(cooks.distance(temp1) > qf(0.5, p1+1, n1-p1-1)))
+fits1 <- length(which(abs(dffits(temp1)) > 2*sqrt((p1+1)/n1)))
+coefs1 <- round(summary(temp1)$coefficients[,1], 3)
+ses1 <- round(summary(temp1)$coefficients[,2], 3)
+
+tp1 <- length(coef(temp1test))-1
+tn1 <- nrow(test)
+tvif1 <- max(vif(temp1test))
+tD1 <- length(which(cooks.distance(temp1test) > qf(0.5, tp1+1, tn1-tp1-1)))
+tfits1 <- length(which(abs(dffits(temp1test)) > 2*sqrt((tp1+1)/tn1)))
+tcoefs1 <- round(summary(temp1test)$coefficients[,1], 3)
+tses1 <- round(summary(temp1test)$coefficients[,2], 3)
+
+p2 <- length(coef(temp2))-1
+n2 <- nrow(train)
+vif2 <- max(vif(temp2))
+D2 <- length(which(cooks.distance(temp2) > qf(0.5, p2+1, n2-p2-1)))
+fits2 <- length(which(abs(dffits(temp2)) > 2*sqrt((p2+1)/n2)))
+coefs2 <- round(summary(temp2)$coefficients[,1], 3)
+ses2 <- round(summary(temp2)$coefficients[,2], 3)
+
+tp2 <- length(coef(temp2test))-1
+tn2 <- nrow(test)
+tvif2 <- max(vif(temp2test))
+tD2 <- length(which(cooks.distance(temp2test) > qf(0.5, tp2+1, tn2-tp2-1)))
+tfits2 <- length(which(abs(dffits(temp2test)) > 2*sqrt((tp2+1)/tn2)))
+tcoefs2 <- round(summary(temp2test)$coefficients[,1], 3)
+tses2 <- round(summary(temp2test)$coefficients[,2], 3)
+
+select = function(model, n)
+{
+  SSres <- sum(model$residuals^2)
+  Rsq <- summary(model)$r.squared
+  Rsq_adj <- summary(model)$adj.r.squared
+  p <- length(model$coefficients) - 1
+  AIC <- n*log(SSres/n) + 2*p     # you could also use AIC()
+  AICc <- AIC + (2*(p+2)*(p+3)/(n-p-1))
+  BIC <- n*log(SSres/n) + (p+2)*log(n)    # could also use BIC()
+  res <- c(SSres, Rsq, Rsq_adj, AIC, AICc, BIC)
+  names(res) <- c("SSres", "Rsq", "Rsq_adj", "AIC", "AIC_c", "BIC")
+  return(res)
+}
+
+
+s4 <- select(tmodel5, nrow(test))
+s4
+s5 <- select(tmodel5_reduced1, nrow(test))
+s5
+s6 <- select(tmodel5_reduced2, nrow(test))
+s6
+```
+
+```{r include=FALSE}
+test$logCO_2 <- log(test$CO_2)
+test$logNO_x <- log(test$NO_x)
+test$logSO_x <- log(test$SO_x)
+
+model_final<- lm(Effect_value ~ logCO_2 + logSO_x +logNO_x, test)
+summary(model_final)
+confint(model_final, level=0.95)
+#Here we see that t-value represents the test statistic, using a null value of 0 (so it's estimate/standard error). Since all of the predictor have a p-value of less than 0.05 which indicates that they are all significant and we rejecting the null hypothesis that there is no linear relationship between my predictors and interest variable.
+```
+
+```{r include=FALSE}
+#To find an estimate of the mean response and corresponding confidence interval:
+
+
+# so we need to first create a tiny data frame holding the x values for prediction
+newdata <- data.frame(logCO_2 = c(5.1, 5), logSO_x = c(0.2,0.3),  logNO_x = c(-2.2,-2.1))
+
+# then to get the estimate and interval, use the predict function
+predict(model_final, newdata=newdata, interval="confidence", level=0.95)
+predict(model_final, newdata=newdata, interval="prediction", level=0.95)
+```
+
+Then, I take the logarithm on both response and predictors to create a new model called model2 and check its assumption situation. The assumptions are vastly improved, but the ggplot shows it is not that diagonal. So I consider fixing a transformation on only predictors as my model3. The assumption check result is in the figure.3, figure.4, and figure.5 in the appendix. I also found some VIF value of my current model’s predictor is high (table.4 in the appendix), so I did remove them twice to generate model5 with only the logarithm of CO2, CO, SOx, and NOx as my predictors. Figure.1 shows the residual plots and ggplot of model5. It generally fulfills the assumptions with a bit of violation of constant variance due to outliers.
+
+By applying ANOVA F-test on model5, I found both logarithms of CO and SOx have p-values larger than 0.05. So, I fix model5 with version 1 by removing CO only and version 2 by removing SOx only. Version 1 has $R^2$ of 62.54% but some of the predictors become of non-significance. Version 2 is good with $R^2$ of 67.95% and all the left predictors are significant.
+
+I identified 10 leverage points in the data that are distant from the rest of the observations in the predictor space. I also identified 1 outliers observation when considering the dataset as "small", and 0 when considering it as "large" but no observations were identified as being influential on the entire regression surface. One observation influenced their own fitted values. (DFFITS) and 5 observations are influential on at least one estimated coefficient. (DFBETA)
+
+Table.1
+
+Model | Adjusted $R^2$ | AIC | BIC 
+------|----------------|-----|-----
+Train Model5 | `r round(s1[3], 2)` | `r s1[4]` | `r s1[6]`
+Train Reduced model (version 1)| `r s2[3]` | `r s2[4]` | `r s2[6]`
+Train Reduced model (version 2)| `r s3[3]` | `r s3[4]` | `r s3[6]`
+
+```{r echo=FALSE}
+par(mfrow=c(2,3))
+r <- tmodel5_reduced2$residuals
+plot(r ~ fit, xlab="Fitted", ylab="Residuals")
+plot(r ~ test$CO_2, xlab="logCO2", ylab="Residuals")
+plot(r ~ test$SO_x, xlab="logSOX", ylab="Residuals")
+plot(r ~ test$NO_x, xlab="logNOX", ylab="Residuals")
+qqnorm(r)
+qqline(r)
+```
+Figure.2
+
+Table.1 provides a clear view of the goodness of model5 and its two versions of reduced models. By observation, version 2 of the reduced model owns the highest $R^2$ and the lowest AIC and BIC which is the best model. After that, I refit the models generated with the training data with the testing data and check all its assumptions validation. Figure.2 shows the residual plots and ggplot of model5 mentioned above but with the testing data. It looks similar to figure.1 which is good to see. By the same process, two candidate predictors are non-significant under ANOVA F-test. Two versions of reduced models are generated with the testing data.
+
+Table.2
+
+Model | Adjusted $R^2$ | AIC | BIC 
+------|----------------|-----|-----
+Test Model5 | `r round(s4[3], 2)` | `r s4[4]` | `r s4[6]`
+Test Reduced model (version 1)| `r s5[3]` | `r s5[4]` | `r s5[6]`
+Test Reduced model (version 2)| `r s6[3]` | `r s6[4]` | `r s6[6]`
+
+Table.2 provides a clear view of the goodness of model5 using testing data and its two versions of reduced models. By observation, model5 and its second reduced version are similar with $R^2$ of around 0.575 and AIC of 583 and model5 has a lower BIC which implies it may become a better prediction. Table.3 is a comparison of the two best models in training and testing data. The largest VIF value, cook’s distance, DFFITS, and violations are shown. It’s obvious that the reduced model has lower VIF and less influential points.
+
+Table.3
+
+Characteristic | Reduced Model5 (version 2 Train) | Reduced Model5 (version 2 Test) | Model5 (Train) | Model5 (Test)
+---------------|----------------|---------------|-----------------|---------------
+Largest VIF value | `r vif1` | `r tvif1` | `r vif2` | `r tvif2`
+Cook's D | `r D1` | `r tD1` | `r D2` | `r tD2`
+DFFITS | `r fits1` | `r tfits1` | `r fits2` | `r tfits2`
+Violations | none | none | none | none
+---------------|----------------|---------------|-----------------|---------------
+Intercept | `r coefs1[1]` $\pm$ `r ses1[1]` | `r tcoefs1[1]` $\pm$ `r tses1[1]` | `r coefs2[1]` $\pm$ `r ses2[1]`  | `r tcoefs2[1]` $\pm$ `r tses2[1]`
+log(CO2)  | `r coefs1[2]` $\pm$ `r ses1[2]` |`r tcoefs1[2]` $\pm$ `r tses1[2]`  | `r coefs2[2]` $\pm$ `r ses2[2]`  | `r tcoefs2[4]` $\pm$ `r tses2[2]`
+log(SOx)  | `r coefs1[3]` $\pm$ `r ses1[3]` |`r tcoefs1[3]` $\pm$ `r tses1[3]`  | `r coefs2[3]` $\pm$ `r ses2[3]`  | `r tcoefs2[5]` $\pm$ `r tses2[3]` 
+log(NOx)  | `r coefs1[4]` $\pm$ `r ses1[4]` | `r tcoefs1[4]` $\pm$ `r tses1[4]` | `r coefs2[4]` $\pm$ `r ses2[4]`  | `r tcoefs2[4]` $\pm$ `r tses2[4]` 
+log(CO)   | - | - | `r coefs2[5]` $\pm$ `r ses2[5]` | `r tcoefs2[5]` $\pm$ `r tses2[5]`
+
+\newpage
+
+## Discussion
+```{r include=FALSE}
+summary(model5_reduced2)
+```
+By seeing the performance of each model, I eventually decide to choose version 2 of reduced model as my final mode. It has the response of effect value and three predictors which are logarithms of CO2, SOx and NOx.
+$$y_{Effect} = \beta_0+\beta_1x_{log(CO_2)} + \beta_2x_{log(SO_X)}+ \beta_3x_{log(NO_x)}$$
+$$y_{Effect} = 79.03-70.81x_{log(CO_2)} + 41.14x_{log(SO_X)}-177.50x_{log(NO_x)}$$
+
+- $y_{Effect}$ represents the predicted effect value of air pollution. 
+
+- $\beta_0$ is the intercept of the model equals to 79.03. It's the effect value with all the logarithm of air emission of 0
+
+- $\beta_1$ is the slope of logarithm of carbon dioxide emission, for every unit of CO2 emissison, there is a reduce of 70.81 unit of effect value.
+
+- $\beta_2$ is the slope of logarithm of sulphur oxide emission, for every unit of SOx emissison, there is a increase of 41.14 unit of effect value. 
+
+- $\beta_3$ is the slope of logarithm of nitrogen oxide emission, for every unit of NOx emissison, there is a reduce of 177.5 unit of effect value.
+
+The model shows that there is a linear relationship between the air pollution value, CO2, SOx, and NOx emission. If we have the data of these three kinds of polluted gases in million tonnes, this model could be applied to predict the air pollution effect value. In the big picture, it tells us that a high logarithm of SOx will increase the air pollution effect, but a high logarithm of CO2 and NOx will reduce the effect. Therefore, the final model could answer my research question that there is indeed a linear relationship between polluted gases emission and air pollution, but using only CO2, SOx and NOx will make the best prediction.
+
+However, my model does contain outliers, leverage, and influential observations that are not being removed. Because there is no abnormal measurement or errors, I will not delete these observations since it is not ethical. In this case, the limitation of my model might be caused. In addition, the assumption of constant variance is poorly fulfilled and cannot be fixed. It means that standard errors of coefficients are larger than they should be. Therefore it is possible that decisions based on test statistics are unreliable and a different model could have been obtained. One more limitation is from my data. Since the location variable of countries cannot be a representation of the whole world, so it may not lead to an accurate result for a global case. What’s more, since the time I choose is only from 2008 to 2019, these 12 years' intervals can be biased and make some errors.
+
+\newpage
+
+## Reference
+
+Allaire, J.J., et. el. *References: Introduction to R Markdown*. RStudio. [https://rmarkdown.rstudio.com/docs/](https://rmarkdown.rstudio.com/docs/). (Last Accessed: January 15, 2021)
+
+
+Armstrong, D. A., Lucas, J., & Taylor, Z. (2022). The Urban-Rural Divide in Canadian Federal Elections, 1896–2019. Canadian Journal of Political Science, 55(1), 84–106. https://doi.org/10.1017/S0008423921000792
+
+Barbosa Lima, Leandro Jose & Hamzagic, Miroslava. (2022). Greenhouse gases and air pollution: commonalities and differentiators. Revista Científica Multidisciplinar Núcleo do Conhecimento. 6. 102-144. 10.32749/nucleodoconhecimento.com.br/environment/green-house-gases.  https://www.researchgate.net/publication/363885205_GREENHOUSE_GASES_AND_AIR_POLLUTION_COMMONALITIES_AND_DIFFERENTIATORS
+
+Brook, R. D. (2008). Cardiovascular effects of air pollution. Clinical science, 115(6), 175-187. https://doi.org/10.1042/CS20070444 
+
+Grolemund, G. (2014, July 16) *Introduction to R Markdown*. RStudio. [https://rmarkdown.rstudio.com/articles_intro.html](https://rmarkdown.rstudio.com/articles_intro.html). (Last Accessed: January 15, 2021) 
+
+Hoek, G., Krishnan, R. M., Beelen, R., Peters, A., Ostro, B., Brunekreef, B., & Kaufman, J. D. (2013). Long-term air pollution exposure and cardio-respiratory mortality: a review. Environmental health, 12(1), 1-16. https://scholar.google.com/scholar?hl=en&as_sdt=0%2C5&q=air+pollution+effect+and+exposure&btnG=
+
+\newpage
+
+## Appendix
+```{r echo=TRUE}
+glimpse(data)
+```
+Figure.3
+```{r echo=FALSE}
+par(mfrow=c(3,3))
+r <- model3$residuals
+plot(r ~ train$CO_2, xlab="logCO2", ylab="Residuals")
+plot(r ~ train$CO_, xlab="logCO", ylab="Residuals")
+plot(r ~ train$SO_x, xlab="logSOX", ylab="Residuals")
+plot(r ~ train$NO_x, xlab="logNOX", ylab="Residuals")
+plot(r ~ train$ghg, xlab="logGHG", ylab="Residuals")
+plot(r ~ train$voc, xlab="logVOC", ylab="Residuals")
+qqnorm(r)
+qqline(r)
+```
+
+Model | VIF of log(CO2) | VIF of log(CO) | VIF of log(SOx) | VIF of log(NOx) |VIF of log(GHG) | VIF of log(VOC) 
+------|----------------|------------------|-----------------|-----------------|----------------|--------------
+Model3 | 477.23 | 7.11 | 2.14 | 2.31 | 636.24 | 21.92
+Model4 | 2.90 | 6.62 | 1.87 | 1.80 | - | 9.80
+Model5 | 2.03 | 2.42 | 1.87 | 1.53 | - | -
+```{r include=FALSE}
+vif(model3)
+vif(model4)
+vif(model5)
+```
+Table.4
+
+```{r echo=FALSE}
+# re-check all the conditions and assumptions
+# check condition 1
+fit <- model3$fitted.values
+plot(train$Effect_value ~ fit)
+abline(a = 0, b = 1)
+lines(lowess(train$Effect_value ~ fit), lty=2)
+```
+Figure.4
+
+
+```{r echo=FALSE}
+pairs(train[,3:9])
+```
+Figure.5
+
+
+
+
